@@ -1,0 +1,171 @@
+<html>
+<head>
+<link rel="stylesheet" href="./bower_components/bootstrap/dist/css/bootstrap.css"></link>
+
+<link href="pipewatch.css" rel="stylesheet">
+
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+  <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+</head>
+<body>
+
+
+<div class="site-wrapper">
+
+      <div class="site-wrapper-inner">
+
+        <div class="cover-container">
+
+          <div class="masthead clearfix">
+            <div class="inner">
+              <h3 class="masthead-brand">PipeWatch</h3>
+              <ul class="nav masthead-nav">
+                <li id="pipewatch_select"></li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="inner cover">
+            <div id="pipewatch"></div>
+          </div>
+
+          <div class="mastfoot">
+            <div class="inner">
+              <p>PipeWatch, watch your pipe!</p>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+<script src="./bower_components/jquery/dist/jquery.min.js"></script>
+<script src="./bower_components/momentjs/min/moment.min.js"></script>
+<script src="pipewatch.js"></script>
+<script src="config.js"></script>
+
+<script type="text/javascript">
+  $(document).ready(function () {
+    $('#pipewatch').pipewatch(window.PipeWatchConfig || {});
+  });
+</script>
+
+<script type="text/html" id="select_tpl">
+  <select>
+    <% for (var i = 0; i < users.length; i++) { %>
+      <option value="<%= users[i].id %>" <%= currentUser.id === users[i].id ? 'selected="selected"' : '' %>><%= users[i].email %></option>
+    <% } %>
+  </select>
+</script>
+
+<script type="text/html" id="stages_tpl">
+  <h4>Totals</h4>
+  <table class="table table-stripped">
+    <thead>
+      <tr>
+        <td></td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+          <td><%= stages[i].name %></td>
+        <% } %>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>#deals</td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+            <td data-stage='<%= stages[i].id %>' data-type="deals">
+              <strong><%= stages[i].pipewatch.sum.deals %></strong>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Value (k€)</td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+            <td data-stage='<%= stages[i].id %>' data-type="value">
+              <strong><%= Math.round(stages[i].pipewatch.sum.value / 1000, 1) %></strong>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Weighted value (k€)</td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+            <td data-stage='<%= stages[i].id %>' data-type="weighted_value">
+              <strong><%= Math.round(stages[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
+            </td>
+        <% } %>
+      </tr>
+    </tbody>
+  </table>
+
+  <h4>Averages</h4>
+  <table class="table table-stripped">
+    <thead>
+      <tr>
+        <td></td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+          <td><%= stages[i].name %></td>
+        <% } %>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Velocity (days)</td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+            <td data-stage='<%= stages[i].id %>' data-type="velocity">
+              <strong><%= stages[i].pipewatch.average.velocity %></strong>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Value (k€)</td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+            <td data-stage='<%= stages[i].id %>' data-type="value">
+              <strong><%= Math.round(stages[i].pipewatch.average.value / 1000, 1) %></strong>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Weighted value (k€)</td>
+        <% for (var i = 0; i < stages.length; i++) { %>
+            <td data-stage='<%= stages[i].id %>' data-type="weighted_value">
+              <strong><%= Math.round(stages[i].pipewatch.average.weighted_value / 1000, 1) %></strong>
+            </td>
+        <% } %>
+      </tr>
+    </tbody>
+  </table>
+</script>
+
+<script type="text/html" id="overview_tpl">
+<h4>Overview</h4>
+  <table class="table table-stripped">
+    <thead>
+      <tr>
+        <td>#deals</td>
+        <td>Total value (k€)</td>
+        <td>Total weighted value (k€)</td>
+        <td>Average deals / stage</td>
+        <td>Average deal value (k€)</td>
+        <td>Average deal weighted value (k€)</td>
+        <td>Average velocity (days)</td>
+      </tr>
+      <tr>
+        <td><%= deals %></td>
+        <td><%= Math.round(value / 1000, 1) %></td>
+        <td><%= Math.round(weighted_value / 1000, 1) %></td>
+        <td><%= avg_deals %></td>
+        <td><%= Math.round(avg_value / 1000, 1) %></td>
+        <td><%= Math.round(avg_weighted_value / 1000, 1) %></td>
+        <td><%= velocity %></td>
+      </tr>
+    </thead>
+  </table>
+</script>
+
+</body>
+</html>

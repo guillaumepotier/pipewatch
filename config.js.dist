@@ -1,0 +1,5 @@
+window.PipeWatchConfig = {
+  api_token: 'token',
+  pipeline_id: 4,
+  default_user_id: 74291
+};
