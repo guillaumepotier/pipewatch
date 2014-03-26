@@ -19,7 +19,7 @@
         .done($.proxy(function () {
           this.fetchStages()
             .done($.proxy(function () {
-              this.fetchDealsForUser(this.options.default_user_id);
+              this.fetchDealsForUser(this.getUserByEmail(this.options.default_user).id);
             }, this));
         }, this));
 
@@ -41,6 +41,14 @@
         });
     },
 
+    getUserByEmail: function (email) {
+      for (var i = 0; i < this.users.length; i++)
+        if (email === this.users[i].email)
+          return this.users[i];
+
+      return;
+    },
+
     fetchStages: function () {
       return this.api.get('stages', { pipeline_id: this.options.pipeline_id })
         .done($.proxy(function (response) {
@@ -49,8 +57,6 @@
 
           for (var i = 0; i < this.stages.length; i++)
             this.stagesIds[this.stages[i].id] = i;
-
-          this.fetchDealsForUser(this.options.default_user_id);
         }, this))
         .fail(function () {
           throw new Error('Unable to fetch pipe stages');
@@ -73,9 +79,9 @@
           promises.push(this.api.get('deals', { id: stage.id, user_id: user_id })
             .done($.proxy(function (response) {
               if (null === response.data)
-                store.stages[this.stagesIds[stage.id]] = { deals: [] };
+                store.stages[this.stagesIds[stage.id]] = { id: stage.id, deals: [] };
               else
-                store.stages[this.stagesIds[stage.id]] = { deals: response.data };
+                store.stages[this.stagesIds[stage.id]] = { id: stage.id, deals: response.data };
             }, this))
             .fail(function () {
               throw new Error('Unable to fetch deals for stage #' + id + ' for user #' + user_id);
@@ -96,7 +102,6 @@
     reflow: function () {
       return this.computeAverages()
         .computeOverview()
-        .analyze()
         .render()
         .analyze();
     },
@@ -162,18 +167,18 @@
     analyze: function () {
       var store = this.getStore();
 
-      for (var i = 0; i < store.stages.length - 1; i++) {
+      for (var i = 0; i < this.stages.length - 1; i++) {
         // deals
         if (store.stages[i].pipewatch.sum.deals - this.options.analyze.deals.danger < store.stages[i+1].pipewatch.sum.deals)
-          $('[data-stage=' + store.stages[i].id + '][data-type="deals"]').addClass('pipe-danger');
+          $('[data-stage=' + this.stages[i].id + '][data-type="deals"]').addClass('pipe-danger');
         else if (store.stages[i].pipewatch.sum.deals - this.options.analyze.deals.warning < store.stages[i+1].pipewatch.sum.deals)
-          $('[data-stage=' + store.stages[i].id + '][data-type="deals"]').addClass('pipe-warning');
+          $('[data-stage=' + this.stages[i].id + '][data-type="deals"]').addClass('pipe-warning');
 
         // velocity
         if (store.stages[i].pipewatch.average.velocity > this.options.analyze.velocity.danger)
-          $('[data-stage=' + store.stages[i].id + '][data-type="velocity"]').addClass('pipe-danger');
+          $('[data-stage=' + this.stages[i].id + '][data-type="velocity"]').addClass('pipe-danger');
         else if (store.stages[i].pipewatch.average.velocity > this.options.analyze.velocity.warning)
-          $('[data-stage=' + store.stages[i].id + '][data-type="velocity"]').addClass('pipe-warning');
+          $('[data-stage=' + this.stages[i].id + '][data-type="velocity"]').addClass('pipe-warning');
       }
 
       return this;
