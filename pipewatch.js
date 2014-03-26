@@ -4,6 +4,7 @@
     this.$element = $(element);
     this.options = $.extend(true, {}, defaults, options);
     this.api = new API(this.options);
+    this.store = {};
 
     if (!moment)
       throw new Error('Moment is required');
@@ -61,14 +62,20 @@
 
       this.currentUser = this.users[this.usersIds[user_id]];
 
+      // If we already have fetched user data, do not make calls
+      if (this.hasStore(user_id))
+        return this.reflow();
+
+      var store = { stages: [] };
+
       for (var i = 0; i < this.stages.length; i++) {
         $.proxy(function (stage) {
           promises.push(this.api.get('deals', { id: stage.id, user_id: user_id })
             .done($.proxy(function (response) {
               if (null === response.data)
-                this.stages[this.stagesIds[stage.id]].deals = [];
+                store.stages[this.stagesIds[stage.id]] = { deals: [] };
               else
-                this.stages[this.stagesIds[stage.id]].deals = response.data;
+                store.stages[this.stagesIds[stage.id]] = { deals: response.data };
             }, this))
             .fail(function () {
               throw new Error('Unable to fetch deals for stage #' + id + ' for user #' + user_id);
@@ -78,36 +85,42 @@
 
       return $.when.apply($, promises)
         .done($.proxy(function () {
-          this.computeAverages()
-            .computeOverview()
-            .analyze()
-            .render()
-            .analyze();
+          this.setStore(store);
+          this.reflow();
         }, this))
         .fail(function () {
           throw new Error('An error occured while trying to fetch pipe deals');
         });
     },
 
-    computeAverages: function () {
-      var average, sum;
+    reflow: function () {
+      return this.computeAverages()
+        .computeOverview()
+        .analyze()
+        .render()
+        .analyze();
+    },
 
-      for (var i = 0; i < this.stages.length; i++) {
-        sum = { deals: this.stages[i].deals.length };
+    computeAverages: function () {
+      var average, sum,
+        store = this.getStore();
+
+      for (var i = 0; i < store.stages.length; i++) {
+        sum = { deals: store.stages[i].deals.length };
         average = {
           value: 0,
           weighted_value: 0,
           time: 0
         };
 
-        for (var j = 0; j < this.stages[i].deals.length; j++) {
-          average.value += this.stages[i].deals[j].value;
-          average.weighted_value += this.stages[i].deals[j].weighted_value;
-          average.time += new Date().getTime() - new Date(this.stages[i].deals[j].add_time).getTime();
+        for (var j = 0; j < store.stages[i].deals.length; j++) {
+          average.value += store.stages[i].deals[j].value;
+          average.weighted_value += store.stages[i].deals[j].weighted_value;
+          average.time += new Date().getTime() - new Date(store.stages[i].deals[j].add_time).getTime();
         }
 
-        this.stages[i].pipewatch = { sum: $.extend(sum, average) };
-        this.stages[i].pipewatch.average = {
+        store.stages[i].pipewatch = { sum: $.extend(sum, average) };
+        store.stages[i].pipewatch.average = {
           value: Math.round(average.value / sum.deals, 1),
           weighted_value: Math.round(average.weighted_value / sum.deals, 1),
           velocity: Math.round(moment.duration(Math.round(average.time / sum.deals)).asDays(), 1)
@@ -118,7 +131,9 @@
     },
 
     computeOverview: function () {
-      this.overview = {
+      var store = this.getStore();
+
+      store.overview = {
         deals: 0,
         value: 0,
         weighted_value: 0,
@@ -127,45 +142,49 @@
         velocity: 0
       };
 
-      for (var i = 0; i < this.stages.length; i++) {
-        this.overview.deals += this.stages[i].pipewatch.sum.deals;
-        this.overview.value += this.stages[i].pipewatch.sum.value;
-        this.overview.weighted_value += this.stages[i].pipewatch.sum.weighted_value;
-        this.overview.avg_value += this.stages[i].pipewatch.average.value;
-        this.overview.avg_weighted_value += this.stages[i].pipewatch.average.weighted_value;
-        this.overview.velocity += this.stages[i].pipewatch.average.velocity;
+      for (var i = 0; i < store.stages.length; i++) {
+        store.overview.deals += store.stages[i].pipewatch.sum.deals;
+        store.overview.value += store.stages[i].pipewatch.sum.value;
+        store.overview.weighted_value += store.stages[i].pipewatch.sum.weighted_value;
+        store.overview.avg_value += store.stages[i].pipewatch.average.value;
+        store.overview.avg_weighted_value += store.stages[i].pipewatch.average.weighted_value;
+        store.overview.velocity += store.stages[i].pipewatch.average.velocity;
       }
 
-      this.overview.avg_deals = Math.round(this.overview.deals / this.stages.length, 1);
-      this.overview.avg_value = Math.round(this.overview.avg_value / this.stages.length, 1);
-      this.overview.avg_weighted_value = Math.round(this.overview.avg_weighted_value / this.stages.length, 1);
-      this.overview.velocity = Math.round(this.overview.velocity / this.stages.length, 1);
+      store.overview.avg_deals = Math.round(store.overview.deals / store.stages.length, 1);
+      store.overview.avg_value = Math.round(store.overview.avg_value / store.stages.length, 1);
+      store.overview.avg_weighted_value = Math.round(store.overview.avg_weighted_value / store.stages.length, 1);
+      store.overview.velocity = Math.round(store.overview.velocity / store.stages.length, 1);
 
       return this;
     },
 
     analyze: function () {
-      for (var i = 0; i < this.stages.length - 1; i++) {
+      var store = this.getStore();
+
+      for (var i = 0; i < store.stages.length - 1; i++) {
         // deals
-        if (this.stages[i].pipewatch.sum.deals - this.options.analyze.deals.danger < this.stages[i+1].pipewatch.sum.deals)
-          $('[data-stage=' + this.stages[i].id + '][data-type="deals"]').addClass('pipe-danger');
-        else if (this.stages[i].pipewatch.sum.deals - this.options.analyze.deals.warning < this.stages[i+1].pipewatch.sum.deals)
-          $('[data-stage=' + this.stages[i].id + '][data-type="deals"]').addClass('pipe-warning');
+        if (store.stages[i].pipewatch.sum.deals - this.options.analyze.deals.danger < store.stages[i+1].pipewatch.sum.deals)
+          $('[data-stage=' + store.stages[i].id + '][data-type="deals"]').addClass('pipe-danger');
+        else if (store.stages[i].pipewatch.sum.deals - this.options.analyze.deals.warning < store.stages[i+1].pipewatch.sum.deals)
+          $('[data-stage=' + store.stages[i].id + '][data-type="deals"]').addClass('pipe-warning');
 
         // velocity
-        if (this.stages[i].pipewatch.average.velocity > this.options.analyze.velocity.danger)
-          $('[data-stage=' + this.stages[i].id + '][data-type="velocity"]').addClass('pipe-danger');
-        else if (this.stages[i].pipewatch.average.velocity > this.options.analyze.velocity.warning)
-          $('[data-stage=' + this.stages[i].id + '][data-type="velocity"]').addClass('pipe-warning');
+        if (store.stages[i].pipewatch.average.velocity > this.options.analyze.velocity.danger)
+          $('[data-stage=' + store.stages[i].id + '][data-type="velocity"]').addClass('pipe-danger');
+        else if (store.stages[i].pipewatch.average.velocity > this.options.analyze.velocity.warning)
+          $('[data-stage=' + store.stages[i].id + '][data-type="velocity"]').addClass('pipe-warning');
       }
 
       return this;
     },
 
     render: function () {
+      var store = this.getStore();
+
       this.$element.html('')
-        .append(render('overview_tpl', this.overview))
-        .append(render('stages_tpl', this));
+        .append(render('overview_tpl', store.overview))
+        .append(render('stages_tpl', store));
 
       $('#pipewatch_select').html(render('select_tpl', this));
       $('#pipewatch_select select').on('change', $.proxy(function () {
@@ -173,6 +192,18 @@
       }, this));
 
       return this;
+    },
+
+    hasStore: function (user_id) {
+      return 'undefined' !== typeof this.store[user_id];
+    },
+
+    getStore: function () {
+      return this.store[this.currentUser.id];
+    },
+
+    setStore: function (value) {
+      this.store[this.currentUser.id] = value;
     }
   };
 
