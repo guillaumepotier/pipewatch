@@ -126,9 +126,9 @@
 
         store.stages[i].pipewatch = { sum: $.extend(sum, average) };
         store.stages[i].pipewatch.average = {
-          value: Math.round(average.value / sum.deals, 1),
-          weighted_value: Math.round(average.weighted_value / sum.deals, 1),
-          velocity: Math.round(moment.duration(Math.round(average.time / sum.deals)).asDays(), 1)
+          value: sum.deals ? Math.round(average.value / sum.deals, 1) : 0,
+          weighted_value: sum.deals ? Math.round(average.weighted_value / sum.deals, 1) : 0,
+          velocity: sum.deals ? Math.round(moment.duration(Math.round(average.time / sum.deals)).asDays(), 1) : 0
         };
       }
 
@@ -147,7 +147,7 @@
         velocity: 0
       };
 
-      for (var i = 0; i < store.stages.length; i++) {
+      for (var i = 1; i < store.stages.length - 1; i++) {
         store.overview.deals += store.stages[i].pipewatch.sum.deals;
         store.overview.value += store.stages[i].pipewatch.sum.value;
         store.overview.weighted_value += store.stages[i].pipewatch.sum.weighted_value;
@@ -189,7 +189,7 @@
 
       this.$element.html('')
         .append(render('overview_tpl', store.overview))
-        .append(render('stages_tpl', store));
+        .append(render('stages_tpl', $.extend(true, this, { store: store })));
 
       $('#pipewatch_select').html(render('select_tpl', this));
       $('#pipewatch_select select').on('change', $.proxy(function () {

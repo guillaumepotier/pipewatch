@@ -77,25 +77,25 @@
     <tbody>
       <tr>
         <td>#deals</td>
-        <% for (var i = 0; i < stages.length; i++) { %>
-            <td data-stage='<%= stages[i].id %>' data-type="deals">
-              <strong><%= stages[i].pipewatch.sum.deals %></strong>
+        <% for (var i = 0; i < store.stages.length; i++) { %>
+            <td data-stage='<%= store.stages[i].id %>' data-type="deals">
+              <strong><%= store.stages[i].pipewatch.sum.deals %></strong>
             </td>
         <% } %>
       </tr>
       <tr>
         <td>Value (k€)</td>
-        <% for (var i = 0; i < stages.length; i++) { %>
-            <td data-stage='<%= stages[i].id %>' data-type="value">
-              <strong><%= Math.round(stages[i].pipewatch.sum.value / 1000, 1) %></strong>
+        <% for (var i = 0; i < store.stages.length; i++) { %>
+            <td data-stage='<%= store.stages[i].id %>' data-type="value">
+              <strong><%= Math.round(store.stages[i].pipewatch.sum.value / 1000, 1) %></strong>
             </td>
         <% } %>
       </tr>
       <tr>
         <td>Weighted value (k€)</td>
-        <% for (var i = 0; i < stages.length; i++) { %>
-            <td data-stage='<%= stages[i].id %>' data-type="weighted_value">
-              <strong><%= Math.round(stages[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
+        <% for (var i = 0; i < store.stages.length; i++) { %>
+            <td data-stage='<%= store.stages[i].id %>' data-type="weighted_value">
+              <strong><%= Math.round(store.stages[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
             </td>
         <% } %>
       </tr>
@@ -115,25 +115,25 @@
     <tbody>
       <tr>
         <td>Velocity (days)</td>
-        <% for (var i = 0; i < stages.length; i++) { %>
-            <td data-stage='<%= stages[i].id %>' data-type="velocity">
-              <strong><%= stages[i].pipewatch.average.velocity %></strong>
+        <% for (var i = 0; i < store.stages.length; i++) { %>
+            <td data-stage='<%= store.stages[i].id %>' data-type="velocity">
+              <strong><%= store.stages[i].pipewatch.average.velocity %></strong>
             </td>
         <% } %>
       </tr>
       <tr>
         <td>Value (k€)</td>
-        <% for (var i = 0; i < stages.length; i++) { %>
-            <td data-stage='<%= stages[i].id %>' data-type="value">
-              <strong><%= Math.round(stages[i].pipewatch.average.value / 1000, 1) %></strong>
+        <% for (var i = 0; i < store.stages.length; i++) { %>
+            <td data-stage='<%= store.stages[i].id %>' data-type="value">
+              <strong><%= Math.round(store.stages[i].pipewatch.average.value / 1000, 1) %></strong>
             </td>
         <% } %>
       </tr>
       <tr>
         <td>Weighted value (k€)</td>
-        <% for (var i = 0; i < stages.length; i++) { %>
-            <td data-stage='<%= stages[i].id %>' data-type="weighted_value">
-              <strong><%= Math.round(stages[i].pipewatch.average.weighted_value / 1000, 1) %></strong>
+        <% for (var i = 0; i < store.stages.length; i++) { %>
+            <td data-stage='<%= store.stages[i].id %>' data-type="weighted_value">
+              <strong><%= Math.round(store.stages[i].pipewatch.average.weighted_value / 1000, 1) %></strong>
             </td>
         <% } %>
       </tr>
@@ -142,7 +142,7 @@
 </script>
 
 <script type="text/html" id="overview_tpl">
-<h4>Overview</h4>
+<h4>Overview (without Idea and 1month agreed states)</h4>
   <table class="table table-stripped">
     <thead>
       <tr>
