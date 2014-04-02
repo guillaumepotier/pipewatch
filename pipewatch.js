@@ -150,6 +150,7 @@
       data = $.extend(data || {}, {
         amount: 6,
         interval: 'month',
+        pipeline_id: this.options.pipeline_id,
         start_date: moment().startOf('month').format('YYYY-MM-DD'),
         stop_date: moment().add('months', 6).endOf('month').format('YYYY-MM-DD'),
         totals_convert_currency: 'default_currency',
@@ -173,7 +174,7 @@
       var
         viewMode = ucfirst(this.view),
         calls = [
-          'compute' + viewMode + 'Averages',
+          'compute' + viewMode + 'Details',
           'compute' + viewMode + 'Overview',
           'render',
           'analyze' + viewMode
@@ -186,7 +187,7 @@
       return this;
     },
 
-    computePipelineAverages: function () {
+    computePipelineDetails: function () {
       var average, sum,
         store = this.getStore();
 
@@ -272,7 +273,7 @@
       return this;
     },
 
-    computeTimelineAverages: function () {
+    computeTimelineDetails: function () {
       var
         average,
         sum,
@@ -287,13 +288,16 @@
         sum = { deals: store.periods[i].deals.length };
         average = {
           value: store.periods[i].totals_converted.value,
+          won_value: store.periods[i].totals_converted.won_value,
           weighted_value: 0
         };
 
         for (var j = 0; j < store.periods[i].deals.length; j++) {
           percent_estimated = store.periods[i].deals[j].db99cc66fe5fc443d34081f3d741496aa632e6e2;
 
-          if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
+          if (!store.periods[i].deals[j].active)
+            average.weighted_value += store.periods[i].deals[j].value;
+          else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
             average.weighted_value += store.periods[i].deals[j].value * percent_estimated / 100;
         }
 

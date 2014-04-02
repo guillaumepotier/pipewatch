@@ -177,3 +177,7 @@ body {
 .pipe-good {
   color: #6CBB3C;
 }
+
+small {
+  font-size: 0.8em;
+}

@@ -198,7 +198,9 @@
         <td>Value (k€)</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-stage='<%= i %>' data-type="value">
-              <strong><%= Math.round(store.periods[i].pipewatch.sum.value / 1000, 1) %></strong>
+              <strong>
+                <%= Math.round(store.periods[i].pipewatch.sum.value / 1000, 1) %>
+              </strong>
             </td>
         <% } %>
       </tr>
