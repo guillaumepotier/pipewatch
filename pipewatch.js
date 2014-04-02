@@ -5,6 +5,7 @@
     this.options = $.extend(true, {}, defaults, options);
     this.api = new API(this.options);
     this.store = {};
+    this.view = this.options.default_view;
 
     if (!moment)
       throw new Error('Moment is required');
@@ -19,7 +20,7 @@
         .done($.proxy(function () {
           this.fetchStages()
             .done($.proxy(function () {
-              this.fetchDealsForUser(this.getUserByEmail(this.options.default_user).id);
+              this.fetchDealsForUser();
             }, this));
         }, this));
 
@@ -31,6 +32,9 @@
         .done($.proxy(function (response) {
           this.users = response.data;
           this.usersIds = {};
+
+          // generate fake everyone user
+          this.users.unshift({ id: -1, email: 'everyone@wisembly.com' });
 
           for (var i = 0; i < this.users.length; i++)
             this.usersIds[this.users[i].id] = i;
@@ -64,19 +68,30 @@
     },
 
     fetchDealsForUser: function (user_id) {
-      var promises = [], stage;
+      var promises = [], stage, data = {};
 
+      if (!user_id) {
+        user_id = -1;
+      }
+
+      // set current user
       this.currentUser = this.users[this.usersIds[user_id]];
 
+      // prepare data that would be sent to API
+      if (-1 === user_id)
+        data = { everyone: 1 };
+      else
+        data = { user_id: this.currentUser.id };
+
       // If we already have fetched user data, do not make calls
-      if (this.hasStore(user_id))
+      if (this.hasStore(this.currentUser.id, this.view))
         return this.reflow();
 
       var store = { stages: [] };
 
       for (var i = 0; i < this.stages.length; i++) {
         $.proxy(function (stage) {
-          promises.push(this.api.get('deals', { id: stage.id, user_id: user_id })
+          promises.push(this.api.get('deals', $.extend({ id: stage.id }, data))
             .done($.proxy(function (response) {
               if (null === response.data)
                 store.stages[this.stagesIds[stage.id]] = { id: stage.id, deals: [] };
@@ -84,7 +99,7 @@
                 store.stages[this.stagesIds[stage.id]] = { id: stage.id, deals: response.data };
             }, this))
             .fail(function () {
-              throw new Error('Unable to fetch deals for stage #' + id + ' for user #' + user_id);
+              throw new Error('Unable to fetch deals for stage #' + id + ' for user #' + this.currentUser.id);
             }));
           }, this)(this.stages[i]);
       }
@@ -121,7 +136,7 @@
         for (var j = 0; j < store.stages[i].deals.length; j++) {
           average.value += store.stages[i].deals[j].value;
           average.weighted_value += store.stages[i].deals[j].weighted_value;
-          average.time += new Date().getTime() - new Date(store.stages[i].deals[j].add_time).getTime();
+          average.time += new Date().getTime() - new Date(store.stages[i].deals[j].stage_change_time).getTime();
         }
 
         store.stages[i].pipewatch = { sum: $.extend(sum, average) };
@@ -188,27 +203,28 @@
       var store = this.getStore();
 
       this.$element.html('')
-        .append(render('overview_tpl', store.overview))
-        .append(render('stages_tpl', $.extend(true, this, { store: store })));
+        .append(render(this.view + '_overview_tpl', store.overview))
+        .append(render(this.view + '_detail_tpl', $.extend(true, this, { store: store })));
 
       $('#pipewatch_select').html(render('select_tpl', this));
       $('#pipewatch_select select').on('change', $.proxy(function () {
-        this.fetchDealsForUser($('#pipewatch_select select').val());
+        this.view = $('#pipewatch_select select[name="view"]').val();
+        this.fetchDealsForUser($('#pipewatch_select select[name="user"]').val());
       }, this));
 
       return this;
     },
 
-    hasStore: function (user_id) {
-      return 'undefined' !== typeof this.store[user_id];
+    hasStore: function (user_id, view) {
+      return 'undefined' !== typeof this.store[user_id + view];
     },
 
     getStore: function () {
-      return this.store[this.currentUser.id];
+      return this.store[this.currentUser.id + this.view];
     },
 
     setStore: function (value) {
-      this.store[this.currentUser.id] = value;
+      this.store[this.currentUser.id + this.view] = value;
     }
   };
 
@@ -220,9 +236,11 @@
     api: 'https://api.pipedrive.com/v1/',
     routes: {
       users: 'users',
-      stages: 'stages?pipeline_id={pipeline_id}',
-      deals: 'stages/{id}/deals'
+      stages: 'stages',
+      deals: 'stages/{id}/deals',
+      timeline: 'deals/timeline'
     },
+    views: [ 'pipeline', 'timeline' ],
     analyze: {
       deals: {
         danger: 1,
@@ -244,7 +262,11 @@
       if (!this.options.routes[endpoint])
         throw new Error('Unknown endpoint');
 
-      return $.ajax($.extend(true, {}, { url: this.generateUrl(this.options.api + this.options.routes[endpoint], queryArgs) }, options));
+      return $.ajax($.extend(true, {}, { url: this.generateUrl(this.options.api + this.options.routes[endpoint], queryArgs) }, options))
+        .done(function (data) {
+          if (data.additional_data && data.additional_data.pagination && true === data.additional_data.pagination.more_items_in_collection)
+            throw new Error('more objects in collection, need to implement pagination!');
+        });
     },
 
     generateUrl: function (url, queryArgs) {
@@ -269,12 +291,18 @@
 
 })(window.jQuery);
 
+
+// GLOBALS
+function ucfirst (string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
 // Simple JavaScript Templating
 // John Resig - http://ejohn.org/ - MIT Licensed
 (function(){
   var cache = {};
 
-  this.render = function render(str, data){
+  this.render = function render (str, data) {
     // Figure out if we're getting a template, or if we need to
     // load the template - and be sure to cache the result.
     var fn = !/\W/.test(str) ?

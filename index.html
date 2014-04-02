@@ -56,14 +56,21 @@
 </script>
 
 <script type="text/html" id="select_tpl">
-  <select>
-    <% for (var i = 0; i < users.length; i++) { %>
-      <option value="<%= users[i].id %>" <%= currentUser.id === users[i].id ? 'selected="selected"' : '' %>><%= users[i].email %></option>
-    <% } %>
-  </select>
+  <div class="control-group">
+    <select name="view" class="form-inline">
+      <% for (var i = 0; i < options.views.length; i++) { %>
+        <option value="<%= options.views[i] %>" <%= view === options.views[i] ? 'selected="selected"' : '' %>><%= ucfirst(options.views[i]) %></option>
+      <% } %>
+    </select>
+    <select name="user" class="form-inline">
+      <% for (var i = 0; i < users.length; i++) { %>
+        <option value="<%= users[i].id %>" <%= currentUser.id === users[i].id ? 'selected="selected"' : '' %>><%= users[i].email %></option>
+      <% } %>
+    </select>
+  </div>
 </script>
 
-<script type="text/html" id="stages_tpl">
+<script type="text/html" id="pipeline_detail_tpl">
   <h4>Totals</h4>
   <table class="table table-stripped">
     <thead>
@@ -141,7 +148,7 @@
   </table>
 </script>
 
-<script type="text/html" id="overview_tpl">
+<script type="text/html" id="pipeline_overview_tpl">
 <h4>Overview (without Idea and 1month agreed states)</h4>
   <table class="table table-stripped">
     <thead>

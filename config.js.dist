@@ -1,5 +1,5 @@
 window.PipeWatchConfig = {
   api_token: 'token',
   pipeline_id: 4,
-  default_user: 'andrei@wisembly.com'
+  default_view: 'pipeline'
 };
