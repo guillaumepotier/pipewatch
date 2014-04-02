@@ -149,7 +149,7 @@
 </script>
 
 <script type="text/html" id="pipeline_overview_tpl">
-<h4>Overview (without Idea and 1month agreed states)</h4>
+  <h4>Overview (without Idea and 1month agreed states)</h4>
   <table class="table table-stripped">
     <thead>
       <tr>
@@ -171,6 +171,30 @@
         <td><%= velocity %></td>
       </tr>
     </thead>
+  </table>
+</script>
+
+<script type="text/html" id="timeline_detail_tpl">
+  <h4>Totals</h4>
+    <table class="table table-stripped">
+    <thead>
+      <tr>
+        <td></td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+          <td><%= moment(store.periods[i].period_start).format('MMM') %></td>
+        <% } %>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>#deals</td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+            <td data-period='<%= i %>' data-type="deals">
+
+            </td>
+        <% } %>
+      </tr>
+    </tbody>
   </table>
 </script>
 

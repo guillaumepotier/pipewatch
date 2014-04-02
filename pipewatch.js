@@ -20,7 +20,7 @@
         .done($.proxy(function () {
           this.fetchStages()
             .done($.proxy(function () {
-              this.fetchDealsForUser();
+              this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this);
             }, this));
         }, this));
 
@@ -67,15 +67,28 @@
         });
     },
 
-    fetchDealsForUser: function (user_id) {
-      var promises = [], stage, data = {};
+    fetchPipelineDealsForUser: function (user_id) {
+      var
+        data = {},
+        promises = [],
+        stagesStore = { stages: [] }
+        store = stagesStore;
 
-      if (!user_id) {
+      if (!user_id)
         user_id = -1;
-      }
 
       // set current user
       this.currentUser = this.users[this.usersIds[user_id]];
+
+      if (this.hasStore(this.currentUser.id, this.view)) {
+        store = this.getStore();
+
+        // If we already have fetched user data, do not make calls
+        if (store.stages)
+          return this.reflow();
+
+        store = $.extend(store, stagesStore);
+      }
 
       // prepare data that would be sent to API
       if (-1 === user_id)
@@ -83,15 +96,9 @@
       else
         data = { user_id: this.currentUser.id };
 
-      // If we already have fetched user data, do not make calls
-      if (this.hasStore(this.currentUser.id, this.view))
-        return this.reflow();
-
-      var store = { stages: [] };
-
       for (var i = 0; i < this.stages.length; i++) {
         $.proxy(function (stage) {
-          promises.push(this.api.get('deals', $.extend({ id: stage.id }, data))
+          promises.push(this.api.get('pipeline', $.extend({ id: stage.id }, data))
             .done($.proxy(function (response) {
               if (null === response.data)
                 store.stages[this.stagesIds[stage.id]] = { id: stage.id, deals: [] };
@@ -110,20 +117,82 @@
           this.reflow();
         }, this))
         .fail(function () {
-          throw new Error('An error occured while trying to fetch pipe deals');
+          throw new Error('An error occured while trying to fetch pipeline deals');
+        });
+    },
+
+    fetchTimelineDealsForUser: function (user_id) {
+      var
+        data,
+        periodsStore = { periods: [] }
+        store = periodsStore;
+
+      if (!user_id)
+        user_id = -1;
+
+      // set current user
+      this.currentUser = this.users[this.usersIds[user_id]];
+
+      if (this.hasStore(this.currentUser.id, this.view)) {
+        store = this.getStore();
+
+        // If we already have fetched user data, do not make calls
+        if (store.periods)
+          return this.reflow();
+
+        store = $.extend(store, periodsStore);
+      }
+
+      // prepare data that would be sent to API
+      if (-1 !== user_id)
+        data = { user_id: this.currentUser.id };
+
+      data = $.extend(data || {}, {
+        amount: 6,
+        interval: 'month',
+        start_date: moment().startOf('month').format('YYYY-MM-DD'),
+        stop_date: moment().add('months', 6).endOf('month').format('YYYY-MM-DD'),
+        totals_convert_currency: 'default_currency',
+        field_key: '60b9edbc627e27ad84d8ace88bc92644bb21b393' // Expected closing date
+      });
+
+      return this.api.get('timeline', data)
+        .done($.proxy(function (response) {
+          for (var period in response.data)
+            store.periods.push(response.data[period]);
+
+          this.setStore(store);
+          this.reflow();
+        }, this))
+        .fail(function () {
+          throw new Error('An error occured while trying to fetch timeline deals');
         });
     },
 
     reflow: function () {
-      return this.computeAverages()
-        .computeOverview()
-        .render()
-        .analyze();
+      var
+        viewMode = ucfirst(this.view),
+        calls = [
+          'compute' + viewMode + 'Averages',
+          'compute' + viewMode + 'Overview',
+          'render',
+          'analyze' + viewMode
+        ];
+
+      for (var i = 0; i < calls.length; i++)
+        if ('function' === typeof this[calls[i]])
+          this[calls[i]].call(this);
+
+      return this;
     },
 
-    computeAverages: function () {
+    computePipelineAverages: function () {
       var average, sum,
         store = this.getStore();
+
+      // cached store, pipewatch data already computed
+      if (store.pipewatch)
+        return this;
 
       for (var i = 0; i < store.stages.length; i++) {
         sum = { deals: store.stages[i].deals.length };
@@ -150,8 +219,12 @@
       return this;
     },
 
-    computeOverview: function () {
+    computePipelineOverview: function () {
       var store = this.getStore();
+
+      // cached store, pipewatch data already computed
+      if (store.overview)
+        return this;
 
       store.overview = {
         deals: 0,
@@ -179,7 +252,7 @@
       return this;
     },
 
-    analyze: function () {
+    analyzePipeline: function () {
       var store = this.getStore();
 
       for (var i = 0; i < this.stages.length - 1; i++) {
@@ -202,14 +275,18 @@
     render: function () {
       var store = this.getStore();
 
-      this.$element.html('')
-        .append(render(this.view + '_overview_tpl', store.overview))
-        .append(render(this.view + '_detail_tpl', $.extend(true, this, { store: store })));
+      this.$element.html('');
+
+      if ($('#' + this.view + '_overview_tpl').length)
+        this.$element.append(render(this.view + '_overview_tpl', store.overview))
+
+      if ($('#' + this.view + '_detail_tpl').length)
+        this.$element.append(render(this.view + '_detail_tpl', $.extend(true, this, { store: store })));
 
       $('#pipewatch_select').html(render('select_tpl', this));
       $('#pipewatch_select select').on('change', $.proxy(function () {
         this.view = $('#pipewatch_select select[name="view"]').val();
-        this.fetchDealsForUser($('#pipewatch_select select[name="user"]').val());
+        this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, parseInt($('#pipewatch_select select[name="user"]').val(), 10));
       }, this));
 
       return this;
@@ -237,7 +314,7 @@
     routes: {
       users: 'users',
       stages: 'stages',
-      deals: 'stages/{id}/deals',
+      pipeline: 'stages/{id}/deals',
       timeline: 'deals/timeline'
     },
     views: [ 'pipeline', 'timeline' ],
