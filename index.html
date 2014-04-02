@@ -190,7 +190,23 @@
         <td>#deals</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-period='<%= i %>' data-type="deals">
-
+            <%= store.periods[i].pipewatch.sum.deals %>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Value (k€)</td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+            <td data-stage='<%= i %>' data-type="value">
+              <strong><%= Math.round(store.periods[i].pipewatch.sum.value / 1000, 1) %></strong>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Weighted value (k€)</td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+            <td data-stage='<%= i %>' data-type="weighted_value">
+              <strong><%= Math.round(store.periods[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
             </td>
         <% } %>
       </tr>

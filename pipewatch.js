@@ -272,6 +272,37 @@
       return this;
     },
 
+    computeTimelineAverages: function () {
+      var
+        average,
+        sum,
+        percent_estimated,
+        store = this.getStore();
+
+      // cached store, pipewatch data already computed
+      if (store.pipewatch)
+        return this;
+
+      for (var i = 0; i < store.periods.length; i++) {
+        sum = { deals: store.periods[i].deals.length };
+        average = {
+          value: store.periods[i].totals_converted.value,
+          weighted_value: 0
+        };
+
+        for (var j = 0; j < store.periods[i].deals.length; j++) {
+          percent_estimated = store.periods[i].deals[j].db99cc66fe5fc443d34081f3d741496aa632e6e2;
+
+          if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
+            average.weighted_value += store.periods[i].deals[j].value * percent_estimated / 100;
+        }
+
+        store.periods[i].pipewatch = { sum: $.extend(sum, average) };
+      }
+
+      return this;
+    },
+
     render: function () {
       var store = this.getStore();
 
