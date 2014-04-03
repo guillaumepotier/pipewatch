@@ -1,5 +1,5 @@
 window.PipeWatchConfig = {
-  api_token: 'token',
+  api_token: null, // if not provided, login box will be prompted
   pipeline_id: 4,
   default_view: 'pipeline'
 };

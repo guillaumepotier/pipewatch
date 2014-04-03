@@ -16,15 +16,44 @@
 
   PipeWatch.prototype = {
     init: function () {
-      this.fetchUsers()
-        .done($.proxy(function () {
-          this.fetchStages()
-            .done($.proxy(function () {
-              this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this);
-            }, this));
-        }, this));
+      if (!this.options.api_token || null === this.options.api_token)
+        this.authenticate();
+      else
+        this.fetchUsers()
+          .done($.proxy(function () {
+            this.fetchStages()
+              .done($.proxy(function () {
+                this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this);
+              }, this));
+          }, this));
 
-        return window.PipeWatch = this;
+        if (!window.PipeWatch)
+          window.PipeWatch = this;
+
+        return this;
+    },
+
+    authenticate: function () {
+      this.$element.html('')
+        .append(render('authenticate_tpl'))
+        .find('form')
+        .on('submit', $.proxy(function (e) {
+          e.preventDefault();
+
+          var form = {
+            email: $('#pipewatch_email').val().trim(),
+            password: $('#pipewatch_password').val().trim()
+          };
+
+          this.api.post('authenticate', form)
+            .done($.proxy(function (response) {
+              this.options.api_token = response.data[0].api_token;
+              this.init();
+            }, this))
+            .fail(function (xhr, status, response) {
+              throw new Error('Failed authenticate call. Reasons: ' + response);
+            });
+        }, this));
     },
 
     fetchUsers: function () {
@@ -347,6 +376,7 @@
   var defaults = {
     api: 'https://api.pipedrive.com/v1/',
     routes: {
+      authenticate: 'authorizations',
       users: 'users',
       stages: 'stages',
       pipeline: 'stages/{id}/deals',
@@ -379,6 +409,13 @@
           if (data.additional_data && data.additional_data.pagination && true === data.additional_data.pagination.more_items_in_collection)
             throw new Error('more objects in collection, need to implement pagination!');
         });
+    },
+
+    post: function(endpoint, requestArgs, options) {
+      if (!this.options.routes[endpoint])
+        throw new Error('Unknown endpoint');
+
+      return $.ajax($.extend(true, { method: 'POST', data: requestArgs, url: this.generateUrl(this.options.api + this.options.routes[endpoint]) }, options));
     },
 
     generateUrl: function (url, queryArgs) {

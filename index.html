@@ -55,6 +55,22 @@
   });
 </script>
 
+<script type="text/html" id="authenticate_tpl">
+  <div class="form-group col-md-3"></div>
+  <div class="form-group col-md-6">
+    <form id="pipewatch_authenticate" method="POST">
+      <label for="email">Email: </label>
+      <input type="text" name="email" id="pipewatch_email" class="form-control" /><br/>
+
+      <label for="password">Password: </label>
+      <input type="password" name="password" id="pipewatch_password" class="form-control" /><br/>
+
+      <input type="submit" />
+    </form>
+  </div>
+  <div class="form-group col-md-3"></div>
+</script>
+
 <script type="text/html" id="select_tpl">
   <div class="control-group">
     <select name="view" class="form-inline">
