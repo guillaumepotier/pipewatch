@@ -1,5 +1,6 @@
 window.PipeWatchConfig = {
   api_token: null, // if not provided, login box will be prompted
-  pipeline_id: 4,
-  default_view: 'pipeline'
+  pipeline_id: 4, // pipe to be analyzed
+  default_view: 'pipeline', // pipeline | timeline
+  unmonitored_users: [] // users email array to be excluded from PipeWatch
 };
