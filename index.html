@@ -187,12 +187,37 @@
 
 <script type="text/html" id="timeline_detail_tpl">
   <h4>Totals</h4>
+    <div id="pipewatch_timeline_select">
+    showing
+      <select name="amount">
+        <% for (var i = 0; i < options.timeline_options.amount.length; i++) { %>
+          <option value="<%= options.timeline_options.amount[i] %>" <%= options.timeline.amount === options.timeline_options.amount[i] ? 'selected="selected"' : '' %>>
+            <%= options.timeline_options.amount[i] %>
+          </option>
+        <% } %>
+      </select>
+      <select name="interval">
+        <% for (var i = 0; i < options.timeline_options.interval.length; i++) { %>
+          <option value="<%= options.timeline_options.interval[i] %>" <%= options.timeline.interval === options.timeline_options.interval[i] ? 'selected="selected"' : '' %>>
+            <%= ucfirst(options.timeline_options.interval[i]) %>(s)
+          </option>
+        <% } %>
+      </select>
+      starting from
+      <select name="start">
+        <% for (var i = 0; i < options.timeline_options.start.length; i++) { %>
+          <option value="<%= options.timeline_options.start[i] %>" <%= options.timeline.start === options.timeline_options.start[i] ? 'selected="selected"' : '' %>>
+            <%= moment().subtract('month', options.timeline_options.start[i]).startOf('month').format('MMM YYYY') %>
+          </option>
+        <% } %>
+      </select>
+    </div>
     <table class="table table-stripped">
     <thead>
       <tr>
         <td></td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
-          <td><%= moment(store.periods[i].period_start).format('MMM') %></td>
+          <td><%= moment(store.periods[i].period_start).format('MMM YY') %></td>
         <% } %>
       </tr>
     </thead>
