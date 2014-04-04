@@ -60,11 +60,25 @@
       return this.api.get('users')
         .done($.proxy(function (response) {
           this.users = response.data;
-          this.usersIds = {};
+
+          if (this.options.unmonitored_users.length)
+            this.users = this.users.filter($.proxy(function (user) {
+              return -1 === this.options.unmonitored_users.indexOf(user.email);
+            }, this));
+
+          // sort users array email DESC
+          this.users.sort(function (a, b) {
+            if (a.email === b.email)
+              return 0;
+
+            return a.email > b.email ? 1 : -1;
+          });
 
           // generate fake everyone user
           this.users.unshift({ id: -1, email: 'everyone@wisembly.com' });
 
+          // generate users dictionary
+          this.usersIds = {};
           for (var i = 0; i < this.users.length; i++)
             this.usersIds[this.users[i].id] = i;
 
@@ -72,14 +86,6 @@
         .fail(function () {
           throw new Error('Unable to fetch Pipedrive users');
         });
-    },
-
-    getUserByEmail: function (email) {
-      for (var i = 0; i < this.users.length; i++)
-        if (email === this.users[i].email)
-          return this.users[i];
-
-      return;
     },
 
     fetchStages: function () {
@@ -109,7 +115,7 @@
       // set current user
       this.currentUser = this.users[this.usersIds[user_id]];
 
-      if (this.hasStore(this.currentUser.id, this.view)) {
+      if (this.hasStore(this.currentUser.id + this.view)) {
         store = this.getStore();
 
         // If we already have fetched user data, do not make calls
@@ -153,8 +159,7 @@
     fetchTimelineDealsForUser: function (user_id) {
       var
         data,
-        periodsStore = { periods: [] }
-        store = periodsStore;
+        store = { periods: [] };
 
       if (!user_id)
         user_id = -1;
@@ -162,29 +167,27 @@
       // set current user
       this.currentUser = this.users[this.usersIds[user_id]];
 
-      if (this.hasStore(this.currentUser.id, this.view)) {
-        store = this.getStore();
-
-        // If we already have fetched user data, do not make calls
-        if (store.periods)
-          return this.reflow();
-
-        store = $.extend(store, periodsStore);
-      }
-
       // prepare data that would be sent to API
       if (-1 !== user_id)
         data = { user_id: this.currentUser.id };
 
       data = $.extend(data || {}, {
-        amount: 6,
-        interval: 'month',
+        amount: this.options.timeline.amount,
+        interval: this.options.timeline.interval,
         pipeline_id: this.options.pipeline_id,
-        start_date: moment().startOf('month').format('YYYY-MM-DD'),
-        stop_date: moment().add('months', 6).endOf('month').format('YYYY-MM-DD'),
+        start_date: moment().subtract('month', this.options.timeline.start).startOf('month').format('YYYY-MM-DD'),
         totals_convert_currency: 'default_currency',
         field_key: '60b9edbc627e27ad84d8ace88bc92644bb21b393' // Expected closing date
       });
+
+      var crc = $.param(this.options.timeline);
+
+      // If we already have fetched user data, do not make calls
+      if (this.hasStore(crc)) {
+        store = this.getStore();
+
+        return this.reflow();
+      }
 
       return this.api.get('timeline', data)
         .done($.proxy(function (response) {
@@ -333,6 +336,8 @@
         store.periods[i].pipewatch = { sum: $.extend(sum, average) };
       }
 
+      store.pipewatch = true;
+
       return this;
     },
 
@@ -345,27 +350,46 @@
         this.$element.append(render(this.view + '_overview_tpl', store.overview))
 
       if ($('#' + this.view + '_detail_tpl').length)
-        this.$element.append(render(this.view + '_detail_tpl', $.extend(true, this, { store: store })));
+        this.$element.append(render(this.view + '_detail_tpl', $.extend(true, {}, this, { store: store })));
 
-      $('#pipewatch_select').html(render('select_tpl', this));
-      $('#pipewatch_select select').on('change', $.proxy(function () {
-        this.view = $('#pipewatch_select select[name="view"]').val();
-        this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, parseInt($('#pipewatch_select select[name="user"]').val(), 10));
-      }, this));
+      if (!$('#pipewatch_select select').length) {
+        $('#pipewatch_select').html(render('select_tpl', this));
+        $('#pipewatch_select select').on('change', $.proxy(function () {
+          this.view = $('#pipewatch_select select[name="view"]').val();
+          this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, parseInt($('#pipewatch_select select[name="user"]').val(), 10));
+        }, this));
+      }
+
+      if ('timeline' === this.view) {
+        $('#pipewatch_timeline_select select').on('change', $.proxy(function () {
+          this.options.timeline.amount = parseInt($('#pipewatch_timeline_select select[name="amount"]').val(), 10);
+          this.options.timeline.interval = $('#pipewatch_timeline_select select[name="interval"]').val();
+          this.options.timeline.start = parseInt($('#pipewatch_timeline_select select[name="start"]').val(), 10);
+          this.fetchTimelineDealsForUser(parseInt($('#pipewatch_select select[name="user"]').val(), 10));
+        }, this));
+      }
 
       return this;
     },
 
-    hasStore: function (user_id, view) {
-      return 'undefined' !== typeof this.store[user_id + view];
+    hasStore: function () {
+      return 'undefined' !== typeof this.store[this._storeKey()];
     },
 
     getStore: function () {
-      return this.store[this.currentUser.id + this.view];
+      return this.store[this._storeKey()];
     },
 
     setStore: function (value) {
-      this.store[this.currentUser.id + this.view] = value;
+      this.store[this._storeKey()] = value;
+    },
+
+    _storeKey: function () {
+      if ('pipeline' === this.view)
+        return 'pipeline' + this.currentUser.id;
+
+      if ('timeline' === this.view)
+        return 'timeline' + this.currentUser.id + $.param(this.options.timeline);
     }
   };
 
@@ -481,3 +505,37 @@ function ucfirst (string) {
     return data ? fn(data) : fn;
   };
 })();
+
+// lte IE8 compatibility
+// https://developer.mozilla.org/en-US/docs/JavaScript/Reference/Global_Objects/Array/indexOf
+if (!Array.prototype.indexOf)
+  Array.prototype.indexOf = function (searchElement /*, fromIndex */ ) {
+    "use strict";
+    if (this === null) {
+        throw new TypeError();
+    }
+    var t = Object(this);
+    var len = t.length >>> 0;
+    if (len === 0) {
+        return -1;
+    }
+    var n = 0;
+    if (arguments.length > 1) {
+        n = Number(arguments[1]);
+        if (n != n) { // shortcut for verifying if it's NaN
+            n = 0;
+        } else if (n !== 0 && n != Infinity && n != -Infinity) {
+            n = (n > 0 || -1) * Math.floor(Math.abs(n));
+        }
+    }
+    if (n >= len) {
+        return -1;
+    }
+    var k = n >= 0 ? n : Math.max(len - Math.abs(n), 0);
+    for (; k < len; k++) {
+        if (k in t && t[k] === searchElement) {
+            return k;
+        }
+    }
+    return -1;
+  };

@@ -12,37 +12,30 @@
 </head>
 <body>
 
-
 <div class="site-wrapper">
-
-      <div class="site-wrapper-inner">
-
-        <div class="cover-container">
-
-          <div class="masthead clearfix">
-            <div class="inner">
-              <h3 class="masthead-brand">PipeWatch</h3>
-              <ul class="nav masthead-nav">
-                <li id="pipewatch_select"></li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="inner cover">
-            <div id="pipewatch"></div>
-          </div>
-
-          <div class="mastfoot">
-            <div class="inner">
-              <p>PipeWatch, watch your pipe!</p>
-            </div>
-          </div>
-
+  <div class="site-wrapper-inner">
+    <div class="cover-container">
+      <div class="masthead clearfix">
+        <div class="inner">
+          <h3 class="masthead-brand">PipeWatch</h3>
+          <ul class="nav masthead-nav">
+            <li id="pipewatch_select"></li>
+          </ul>
         </div>
-
       </div>
 
+      <div class="inner cover">
+        <div id="pipewatch"></div>
+      </div>
+
+      <div class="mastfoot">
+        <div class="inner">
+          <p>PipeWatch, watch your pipe!</p>
+        </div>
+      </div>
     </div>
+  </div>
+</div>
 
 <script src="./bower_components/jquery/dist/jquery.min.js"></script>
 <script src="./bower_components/momentjs/min/moment.min.js"></script>
@@ -115,7 +108,7 @@
         <% } %>
       </tr>
       <tr>
-        <td>Weighted value (k€)</td>
+        <td>Weighted (*) value (k€)</td>
         <% for (var i = 0; i < store.stages.length; i++) { %>
             <td data-stage='<%= store.stages[i].id %>' data-type="weighted_value">
               <strong><%= Math.round(store.stages[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
@@ -153,7 +146,7 @@
         <% } %>
       </tr>
       <tr>
-        <td>Weighted value (k€)</td>
+        <td>Weighted (*) value (k€)</td>
         <% for (var i = 0; i < store.stages.length; i++) { %>
             <td data-stage='<%= store.stages[i].id %>' data-type="weighted_value">
               <strong><%= Math.round(store.stages[i].pipewatch.average.weighted_value / 1000, 1) %></strong>
@@ -162,6 +155,8 @@
       </tr>
     </tbody>
   </table>
+  <div class="clearfix"></div>
+  <p>(*) <strong>by stage</strong> (ie: 10k in a 10% closing probability stage = 1k weighted)</p>
 </script>
 
 <script type="text/html" id="pipeline_overview_tpl">
@@ -171,7 +166,7 @@
       <tr>
         <td>#deals</td>
         <td>Total value (k€)</td>
-        <td>Total weighted value (k€)</td>
+        <td>Total weighted (*) value (k€)</td>
         <td>Average deals / stage</td>
         <td>Average deal value (k€)</td>
         <td>Average deal weighted value (k€)</td>
@@ -192,12 +187,37 @@
 
 <script type="text/html" id="timeline_detail_tpl">
   <h4>Totals</h4>
+    <div id="pipewatch_timeline_select">
+    showing
+      <select name="amount">
+        <% for (var i = 0; i < options.timeline_options.amount.length; i++) { %>
+          <option value="<%= options.timeline_options.amount[i] %>" <%= options.timeline.amount === options.timeline_options.amount[i] ? 'selected="selected"' : '' %>>
+            <%= options.timeline_options.amount[i] %>
+          </option>
+        <% } %>
+      </select>
+      <select name="interval">
+        <% for (var i = 0; i < options.timeline_options.interval.length; i++) { %>
+          <option value="<%= options.timeline_options.interval[i] %>" <%= options.timeline.interval === options.timeline_options.interval[i] ? 'selected="selected"' : '' %>>
+            <%= ucfirst(options.timeline_options.interval[i]) %>(s)
+          </option>
+        <% } %>
+      </select>
+      starting from
+      <select name="start">
+        <% for (var i = 0; i < options.timeline_options.start.length; i++) { %>
+          <option value="<%= options.timeline_options.start[i] %>" <%= options.timeline.start === options.timeline_options.start[i] ? 'selected="selected"' : '' %>>
+            <%= moment().subtract('month', options.timeline_options.start[i]).startOf('month').format('MMM YYYY') %>
+          </option>
+        <% } %>
+      </select>
+    </div>
     <table class="table table-stripped">
     <thead>
       <tr>
         <td></td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
-          <td><%= moment(store.periods[i].period_start).format('MMM') %></td>
+          <td><%= moment(store.periods[i].period_start).format('MMM YY') %></td>
         <% } %>
       </tr>
     </thead>
@@ -221,7 +241,7 @@
         <% } %>
       </tr>
       <tr>
-        <td>Weighted value (k€)</td>
+        <td>Weighted (*) value (k€)</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-stage='<%= i %>' data-type="weighted_value">
               <strong><%= Math.round(store.periods[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
@@ -230,6 +250,7 @@
       </tr>
     </tbody>
   </table>
+  <p>(*) <strong>by deal</strong> (ie: 10k for a 10% closing probability deal = 1k weighted)</p>
 </script>
 
 </body>
