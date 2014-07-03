@@ -2,5 +2,9 @@ window.PipeWatchConfig = {
   api_token: null, // if not provided, login box will be prompted
   pipeline_id: 4, // pipe to be analyzed
   default_view: 'pipeline', // pipeline | timeline
+  jail_feature: true, // if you want to use admin_users feature
+  admin_users: [ // users that could see global statistics and other users' statistics
+    'andrei@wisembly.com'
+  ],
   unmonitored_users: [] // users email array to be excluded from PipeWatch
 };

@@ -72,8 +72,12 @@
       <% } %>
     </select>
     <select name="user" class="form-inline">
-      <% for (var i = 0; i < users.length; i++) { %>
-        <option value="<%= users[i].id %>" <%= currentUser.id === users[i].id ? 'selected="selected"' : '' %>><%= users[i].email %></option>
+      <% if (true === isAdmin) { %>
+        <% for (var i = 0; i < users.length; i++) { %>
+          <option value="<%= users[i].id %>" <%= currentUser.id === users[i].id ? 'selected="selected"' : '' %>><%= users[i].email %></option>
+        <% } %>
+      <% } else { %>
+          <option value="<%= loggedInUser.id %>"><%= loggedInUser.email %></option>
       <% } %>
     </select>
   </div>

@@ -19,6 +19,10 @@ a:hover {
   border: 1px solid #fff;
 }
 
+input[type=submit] {
+  color: #484848;
+  font-weight: bold;
+}
 
 /*
  * Base structure

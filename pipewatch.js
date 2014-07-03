@@ -7,6 +7,10 @@
     this.store = {};
     this.view = this.options.default_view;
 
+    this.isAdmin = !this.options.jail_feature || ('undefined' !== typeof this.options.api_token && null !== this.options.api_token);
+
+    this.loggedInUser = { id: -1, email: null };
+
     if (!moment)
       throw new Error('Moment is required');
 
@@ -23,7 +27,7 @@
           .done($.proxy(function () {
             this.fetchStages()
               .done($.proxy(function () {
-                this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this);
+                this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, this.loggedInUser.id);
               }, this));
           }, this));
 
@@ -47,6 +51,14 @@
 
           this.api.post('authenticate', form)
             .done($.proxy(function (response) {
+              if (this.options.jail_feature && -1 !== this.options.admin_users.indexOf(response.additional_data.user.profile.email))
+                this.isAdmin = true;
+
+              this.loggedInUser = {
+                id: response.additional_data.user.profile.id,
+                email: response.additional_data.user.profile.email
+              };
+
               this.options.api_token = response.data[0].api_token;
               this.init();
             }, this))
