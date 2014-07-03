@@ -2,6 +2,10 @@ window.PipeWatchConfig = {
   api_token: null,
   pipeline_id: 4,
   default_view: 'pipeline',
+  jail_feature: true,
+  admin_users: [
+    'andrei@wisembly.com'
+  ],
   unmonitored_users: [
     'charlotte@wisembly.com',
     'charlotte@balloonup.com',
