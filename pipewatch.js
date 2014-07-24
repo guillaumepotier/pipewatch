@@ -23,11 +23,14 @@
       if (!this.options.api_token || null === this.options.api_token)
         this.authenticate();
       else
-        this.fetchUsers()
+        this.fetchPipelines()
           .done($.proxy(function () {
-            this.fetchStages()
+            this.fetchUsers()
               .done($.proxy(function () {
-                this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, this.loggedInUser.id);
+                this.fetchStages()
+                  .done($.proxy(function () {
+                    this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, this.loggedInUser.id);
+                  }, this));
               }, this));
           }, this));
 
@@ -68,6 +71,23 @@
         }, this));
     },
 
+    fetchPipelines: function () {
+      return this.api.get('pipelines')
+        .done($.proxy(function (response) {
+          this.pipelines = response.data;
+
+          for (var i = 0; i < this.pipelines.length; i++) {
+            if (this.options.default_pipeline_id === this.pipelines[i].id) {
+              this.currentPipeline = this.pipelines[i];
+              break;
+            }
+          }
+        }, this))
+        .fail(function () {
+          throw new Error('Unable to fetch Pipedrive pipelines');
+        });
+    },
+
     fetchUsers: function () {
       return this.api.get('users')
         .done($.proxy(function (response) {
@@ -101,8 +121,9 @@
     },
 
     fetchStages: function () {
-      return this.api.get('stages', { pipeline_id: this.options.pipeline_id })
+      return this.api.get('stages', { pipeline_id: this.currentPipeline.id })
         .done($.proxy(function (response) {
+          this.stagesPipeId = this.currentPipeline.id;
           this.stages = response.data;
           this.stagesIds = {};
 
@@ -118,7 +139,7 @@
       var
         data = {},
         promises = [],
-        stagesStore = { stages: [] }
+        stagesStore = { stages: [] },
         store = stagesStore;
 
       if (!user_id)
@@ -127,7 +148,7 @@
       // set current user
       this.currentUser = this.users[this.usersIds[user_id]];
 
-      if (this.hasStore(this.currentUser.id + this.view)) {
+      if (this.hasStore()) {
         store = this.getStore();
 
         // If we already have fetched user data, do not make calls
@@ -135,6 +156,15 @@
           return this.reflow();
 
         store = $.extend(store, stagesStore);
+      }
+
+      // we need to fetch again stages for this new pipeline
+      if (this.stagesPipeId !== this.currentPipeline.id) {
+        this.fetchStages()
+          .done($.proxy(function () {
+            this.fetchPipelineDealsForUser(user_id);
+          }, this));
+        return;
       }
 
       // prepare data that would be sent to API
@@ -186,16 +216,14 @@
       data = $.extend(data || {}, {
         amount: this.options.timeline.amount,
         interval: this.options.timeline.interval,
-        pipeline_id: this.options.pipeline_id,
+        pipeline_id: this.currentPipeline.id,
         start_date: moment().subtract('month', this.options.timeline.start).startOf('month').format('YYYY-MM-DD'),
         totals_convert_currency: 'default_currency',
         field_key: '60b9edbc627e27ad84d8ace88bc92644bb21b393' // Expected closing date
       });
 
-      var crc = $.param(this.options.timeline);
-
       // If we already have fetched user data, do not make calls
-      if (this.hasStore(crc)) {
+      if (this.hasStore()) {
         store = this.getStore();
 
         return this.reflow();
@@ -359,7 +387,7 @@
       this.$element.html('');
 
       if ($('#' + this.view + '_overview_tpl').length)
-        this.$element.append(render(this.view + '_overview_tpl', store.overview))
+        this.$element.append(render(this.view + '_overview_tpl', store.overview));
 
       if ($('#' + this.view + '_detail_tpl').length)
         this.$element.append(render(this.view + '_detail_tpl', $.extend(true, {}, this, { store: store })));
@@ -368,6 +396,7 @@
         $('#pipewatch_select').html(render('select_tpl', this));
         $('#pipewatch_select select').on('change', $.proxy(function () {
           this.view = $('#pipewatch_select select[name="view"]').val();
+          this.currentPipeline = this.pipelines[$('#pipewatch_select select[name="pipeline"]').val()];
           this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, parseInt($('#pipewatch_select select[name="user"]').val(), 10));
         }, this));
       }
@@ -398,10 +427,10 @@
 
     _storeKey: function () {
       if ('pipeline' === this.view)
-        return 'pipeline' + this.currentUser.id;
+        return 'pipeline' + this.currentUser.id + 'pipeline-' + this.currentPipeline.id;
 
       if ('timeline' === this.view)
-        return 'timeline' + this.currentUser.id + $.param(this.options.timeline);
+        return 'timeline' + this.currentUser.id + 'pipeline-' + this.currentPipeline.id + $.param(this.options.timeline);
     }
   };
 
@@ -416,6 +445,7 @@
       users: 'users',
       stages: 'stages',
       pipeline: 'stages/{id}/deals',
+      pipelines: 'pipelines',
       timeline: 'deals/timeline'
     },
     views: [ 'pipeline', 'timeline' ],

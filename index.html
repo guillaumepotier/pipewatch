@@ -71,6 +71,11 @@
         <option value="<%= options.views[i] %>" <%= view === options.views[i] ? 'selected="selected"' : '' %>><%= ucfirst(options.views[i]) %></option>
       <% } %>
     </select>
+    <select name="pipeline" class="form-inline">
+      <% for (var i = 0; i < pipelines.length; i++) { %>
+        <option value="<%= i %>" <%= currentPipeline.id === pipelines[i].id ? 'selected="selected"' : '' %>><%= ucfirst(pipelines[i].name) %></option>
+      <% } %>
+    </select>
     <select name="user" class="form-inline">
       <% if (true === isAdmin) { %>
         <% for (var i = 0; i < users.length; i++) { %>
