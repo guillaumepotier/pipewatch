@@ -473,7 +473,7 @@
       return $.ajax($.extend(true, {}, { url: this.generateUrl(this.options.api + this.options.routes[endpoint], queryArgs) }, options))
         .done(function (data) {
           if (data.additional_data && data.additional_data.pagination && true === data.additional_data.pagination.more_items_in_collection)
-            throw new Error('more objects in collection, need to implement pagination!');
+            console.warn('more objects in collection, need to implement pagination!');
         });
     },
 
