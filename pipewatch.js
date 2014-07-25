@@ -308,7 +308,7 @@
         velocity: 0
       };
 
-      for (var i = 1; i < store.stages.length - 1; i++) {
+      for (var i = 0; i < store.stages.length; i++) {
         store.overview.deals += store.stages[i].pipewatch.sum.deals;
         store.overview.value += store.stages[i].pipewatch.sum.value;
         store.overview.weighted_value += store.stages[i].pipewatch.sum.weighted_value;
@@ -357,7 +357,10 @@
         return this;
 
       for (var i = 0; i < store.periods.length; i++) {
-        sum = { deals: store.periods[i].deals.length };
+        sum = {
+          deals: store.periods[i].deals.length,
+          monthly_closing: 0
+        };
         average = {
           value: store.periods[i].totals_converted.value,
           won_value: store.periods[i].totals_converted.won_value,
@@ -367,9 +370,13 @@
         for (var j = 0; j < store.periods[i].deals.length; j++) {
           percent_estimated = store.periods[i].deals[j].db99cc66fe5fc443d34081f3d741496aa632e6e2;
 
-          if (!store.periods[i].deals[j].active)
+          if (!store.periods[i].deals[j].active) {
             average.weighted_value += store.periods[i].deals[j].value;
-          else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
+
+            if (moment(store.periods[i].period_start).month() === moment(store.periods[i].deals[j].add_time).month()) {
+              sum.monthly_closing += store.periods[i].deals[j].value;
+            }
+          } else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
             average.weighted_value += store.periods[i].deals[j].value * percent_estimated / 100;
         }
 
