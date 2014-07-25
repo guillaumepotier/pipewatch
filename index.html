@@ -71,6 +71,11 @@
         <option value="<%= options.views[i] %>" <%= view === options.views[i] ? 'selected="selected"' : '' %>><%= ucfirst(options.views[i]) %></option>
       <% } %>
     </select>
+    <select name="pipeline" class="form-inline">
+      <% for (var i = 0; i < pipelines.length; i++) { %>
+        <option value="<%= i %>" <%= currentPipeline.id === pipelines[i].id ? 'selected="selected"' : '' %>><%= ucfirst(pipelines[i].name) %></option>
+      <% } %>
+    </select>
     <select name="user" class="form-inline">
       <% if (true === isAdmin) { %>
         <% for (var i = 0; i < users.length; i++) { %>
@@ -164,7 +169,7 @@
 </script>
 
 <script type="text/html" id="pipeline_overview_tpl">
-  <h4>Overview (without Idea and 1month agreed states)</h4>
+  <h4>Overview</h4>
   <table class="table table-stripped">
     <thead>
       <tr>
@@ -245,16 +250,20 @@
         <% } %>
       </tr>
       <tr>
-        <td>Weighted (*) value (k€)</td>
+        <td>Weighted <small>*</small> value (k€)</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-stage='<%= i %>' data-type="weighted_value">
               <strong><%= Math.round(store.periods[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
+              <% if (0 !== store.periods[i].pipewatch.sum.monthly_closing) { %>
+              (MC<small>**</small> <%= Math.round(store.periods[i].pipewatch.sum.monthly_closing / 1000, 1) %>)
+              <% } %>
             </td>
         <% } %>
       </tr>
     </tbody>
   </table>
-  <p>(*) <strong>by deal</strong> (ie: 10k for a 10% closing probability deal = 1k weighted)</p>
+  <p>* <strong>by deal</strong> (ie: 10k for a 10% closing probability deal = 1k weighted)</p>
+  <p>** <strong>MC</strong> Monthly Closing, deals opened & closed in the same month</p>
 </script>
 
 </body>
