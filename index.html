@@ -41,6 +41,7 @@
 <script src="./bower_components/momentjs/min/moment.min.js"></script>
 <script src="pipewatch.js"></script>
 <script src="config.js"></script>
+<script src="./bower_components/bootstrap/js/modal.js"></script>
 
 <script type="text/javascript">
   $(document).ready(function () {
@@ -155,7 +156,7 @@
         <% } %>
       </tr>
       <tr>
-        <td>Weighted (*) value (k€)</td>
+        <td>Weighted <sup>*</sup> value (k€)</td>
         <% for (var i = 0; i < store.stages.length; i++) { %>
             <td data-stage='<%= store.stages[i].id %>' data-type="weighted_value">
               <strong><%= Math.round(store.stages[i].pipewatch.average.weighted_value / 1000, 1) %></strong>
@@ -240,7 +241,7 @@
         <% } %>
       </tr>
       <tr>
-        <td>Value (k€)</td>
+        <td>Pipe value</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-stage='<%= i %>' data-type="value">
               <strong>
@@ -250,20 +251,69 @@
         <% } %>
       </tr>
       <tr>
-        <td>Weighted <small>*</small> value (k€)</td>
+        <td>Pipe weighted value<sup>*</sup> (won value)</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-stage='<%= i %>' data-type="weighted_value">
-              <strong><%= Math.round(store.periods[i].pipewatch.sum.weighted_value / 1000, 1) %></strong>
-              <% if (0 !== store.periods[i].pipewatch.sum.monthly_closing) { %>
-              (MC<small>**</small> <%= Math.round(store.periods[i].pipewatch.sum.monthly_closing / 1000, 1) %>)
-              <% } %>
+              <strong><%= Math.round(store.periods[i].pipewatch.sum.weighted_value / 1000, 1) %></strong> <small>(<%= Math.round(store.periods[i].pipewatch.sum.won / 1000, 1) %>)</small>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>MC <sup>**</sup> value (# deals)</td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+            <td data-stage='<%= i %>' data-type="monthly_value">
+              <%= Math.round(store.periods[i].pipewatch.sum.monthly_closing / 1000, 1) %> <small>(<%= store.periods[i].pipewatch.sum.monthly_closed %>)</small>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
+        <td>Products details</td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+            <td data-stage='<%= i %>' data-type="product_detail">
+              <a href="#" data-period="<%= i %>">See</a>
             </td>
         <% } %>
       </tr>
     </tbody>
   </table>
+  <p><strong>All values are expressed in k€</strong></p>
   <p>* <strong>by deal</strong> (ie: 10k for a 10% closing probability deal = 1k weighted)</p>
-  <p>** <strong>MC</strong> Monthly Closing, deals opened & closed in the same month</p>
+  <p>** <strong>Monthly Closing</strong>, deals opened & closed within the same month</p>
+</script>
+
+<script type="text/html" id="period_detail_tpl">
+  <div class="modal fade" id="period-<%= periodIndex %>">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal"><span aria-hidden="true">&times;</span><span class="sr-only">Close</span></button>
+          <h4 class="modal-title">Period products detail</h4>
+        </div>
+        <div class="modal-body">
+          <table class="table table-stripped">
+            <thead>
+              <tr>
+                <td></td>
+                <td># deals</td>
+                <td>Weighted value</td>
+                <td>MC value</td>
+              </tr>
+            </thead>
+            <tbody>
+              <% for (var name in products) { %>
+                <tr>
+                  <td><%= name %></td>
+                  <td><%= products[name].deals.length %></td>
+                  <td><%= Math.round(products[name].weighted_value / 1000, 1) %></td>
+                  <td><%= Math.round(products[name].monthly_closing / 1000, 1) %></td>
+                </tr>
+              <% } %>
+            </tbody>
+          </table>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
 </script>
 
 </body>

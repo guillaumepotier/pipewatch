@@ -185,3 +185,15 @@ body {
 small {
   font-size: 0.8em;
 }
+
+.modal {
+  text-shadow: none;
+}
+
+.modal h4 {
+  color: #484848;
+}
+
+.modal table {
+  color: #484848;
+}
