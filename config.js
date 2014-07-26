@@ -1,7 +1,7 @@
 window.PipeWatchConfig = {
   api_token: null,
   default_pipeline_id: 4,
-  default_view: 'pipeline',
+  default_view: 'timeline',
   jail_feature: true,
   admin_users: [
     'andrei@wisembly.com',
