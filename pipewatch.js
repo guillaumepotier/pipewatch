@@ -25,13 +25,16 @@
       else
         this.fetchPipelines()
           .done($.proxy(function () {
-            this.fetchUsers()
+            this.fetchProducts()
               .done($.proxy(function () {
-                this.fetchStages()
+                this.fetchUsers()
                   .done($.proxy(function () {
-                    this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, this.loggedInUser.id);
+                    this.fetchStages()
+                      .done($.proxy(function () {
+                        this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, this.loggedInUser.id);
+                      }, this));
                   }, this));
-              }, this));
+                }, this));
           }, this));
 
         if (!window.PipeWatch)
@@ -85,6 +88,16 @@
         }, this))
         .fail(function () {
           throw new Error('Unable to fetch Pipedrive pipelines');
+        });
+    },
+
+    fetchProducts: function () {
+      return this.api.get('products')
+        .done($.proxy(function (response) {
+          this.products = response.data;
+        }, this))
+        .fail(function () {
+          throw new Error('Unable to fetch Pipedrive products');
         });
     },
 
@@ -358,29 +371,37 @@
 
       for (var i = 0; i < store.periods.length; i++) {
         sum = {
-          deals: store.periods[i].deals.length,
-          monthly_closing: 0
+          won: 0,
+          monthly_closed: 0,
+          monthly_closing: 0,
+          deals: store.periods[i].deals.length
         };
         average = {
-          value: store.periods[i].totals_converted.value,
-          won_value: store.periods[i].totals_converted.won_value,
-          weighted_value: 0
+          weighted_value: 0,
+          value: store.periods[i].totals_converted.value
         };
+        products = { products: {}, deals: [] };
 
         for (var j = 0; j < store.periods[i].deals.length; j++) {
           percent_estimated = store.periods[i].deals[j].db99cc66fe5fc443d34081f3d741496aa632e6e2;
 
+          // store deal for product detail
+          if (store.periods[i].deals[j].products_count >= 1)
+            products.deals.push(store.periods[i].deals[j]);
+
           if (!store.periods[i].deals[j].active) {
+            sum.won += store.periods[i].deals[j].value;
             average.weighted_value += store.periods[i].deals[j].value;
 
             if (moment(store.periods[i].period_start).month() === moment(store.periods[i].deals[j].add_time).month()) {
               sum.monthly_closing += store.periods[i].deals[j].value;
+              sum.monthly_closed ++;
             }
           } else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
             average.weighted_value += store.periods[i].deals[j].value * percent_estimated / 100;
         }
 
-        store.periods[i].pipewatch = { sum: $.extend(sum, average) };
+        store.periods[i].pipewatch = { sum: $.extend(sum, average), products: products };
       }
 
       store.pipewatch = true;
@@ -388,8 +409,71 @@
       return this;
     },
 
+    showProductsDetail: function (periodIndex) {
+      var
+        promises = [],
+        store = this.getStore();
+
+      if ($('#period-' + periodIndex).length) {
+        return $('#period-' + periodIndex).modal({});
+      }
+
+      // clear products store
+      store.periods[periodIndex].pipewatch.products.products = {};
+
+      for (var i = 0; i < store.periods[periodIndex].pipewatch.products.deals.length; i++) {
+        $.proxy(function (deal) {
+          promises.push(this.api.get('product_detail', { id: store.periods[periodIndex].pipewatch.products.deals[i].id })
+            .done($.proxy(function (response) {
+              product = response.data[0];
+
+              if ('undefined' === typeof store.periods[periodIndex].pipewatch.products.products[product.name])
+                store.periods[periodIndex].pipewatch.products.products[product.name] = { deals: [] };
+
+              store.periods[periodIndex].pipewatch.products.products[product.name].deals.push(deal);
+            }, this))
+            .fail(function () {
+              throw new Error('Unable to fetch products detail');
+            }));
+        }, this)(store.periods[periodIndex].pipewatch.products.deals[i]);
+      }
+
+      return $.when.apply($, promises)
+        .done($.proxy(function () {
+          for (var i in store.periods[periodIndex].pipewatch.products.products) {
+            product = store.periods[periodIndex].pipewatch.products.products[i];
+            product.weighted_value = 0;
+            product.monthly_closing = 0;
+
+            for (var j = 0; j < product.deals.length; j++) {
+              percent_estimated = product.deals[j].db99cc66fe5fc443d34081f3d741496aa632e6e2;
+
+              if (!product.deals[j].active) {
+                product.weighted_value += product.deals[j].value;
+
+                if (moment(store.periods[periodIndex].period_start).month() === moment(product.deals[j].add_time).month()) {
+                  product.monthly_closing += product.deals[j].value;
+                }
+              } else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
+                product.weighted_value += product.deals[j].value * percent_estimated / 100;
+            }
+          }
+
+          console.log(store.periods[periodIndex].pipewatch);
+          console.log($.extend(true, {}, store.periods[periodIndex].pipewatch.products, { period: periodIndex }));
+
+          this.$element.append(render('period_detail_tpl', $.extend(true, {}, store.periods[periodIndex].pipewatch.products, { periodIndex: periodIndex })));
+          $('#period-' + periodIndex).modal({});
+        }, this))
+        .fail(function () {
+          throw new Error('An error occured while trying to fetch pipeline deals');
+        });
+    },
+
     render: function () {
-      var store = this.getStore();
+      var
+        that = this,
+        store = this.getStore();
 
       this.$element.html('');
 
@@ -401,20 +485,24 @@
 
       if (!$('#pipewatch_select select').length) {
         $('#pipewatch_select').html(render('select_tpl', this));
-        $('#pipewatch_select select').on('change', $.proxy(function () {
-          this.view = $('#pipewatch_select select[name="view"]').val();
-          this.currentPipeline = this.pipelines[$('#pipewatch_select select[name="pipeline"]').val()];
-          this['fetch' + ucfirst(this.view) + 'DealsForUser'].call(this, parseInt($('#pipewatch_select select[name="user"]').val(), 10));
-        }, this));
+        $('#pipewatch_select select').on('change', function () {
+          that.view = $('#pipewatch_select select[name="view"]').val();
+          that.currentPipeline = that.pipelines[$('#pipewatch_select select[name="pipeline"]').val()];
+          that['fetch' + ucfirst(that.view) + 'DealsForUser'].call(that, parseInt($('#pipewatch_select select[name="user"]').val(), 10));
+        });
       }
 
       if ('timeline' === this.view) {
-        $('#pipewatch_timeline_select select').on('change', $.proxy(function () {
-          this.options.timeline.amount = parseInt($('#pipewatch_timeline_select select[name="amount"]').val(), 10);
-          this.options.timeline.interval = $('#pipewatch_timeline_select select[name="interval"]').val();
-          this.options.timeline.start = parseInt($('#pipewatch_timeline_select select[name="start"]').val(), 10);
-          this.fetchTimelineDealsForUser(parseInt($('#pipewatch_select select[name="user"]').val(), 10));
-        }, this));
+        $('#pipewatch_timeline_select select').on('change', function () {
+          that.options.timeline.amount = parseInt($('#pipewatch_timeline_select select[name="amount"]').val(), 10);
+          that.options.timeline.interval = $('#pipewatch_timeline_select select[name="interval"]').val();
+          that.options.timeline.start = parseInt($('#pipewatch_timeline_select select[name="start"]').val(), 10);
+          that.fetchTimelineDealsForUser(parseInt($('#pipewatch_select select[name="user"]').val(), 10));
+        });
+
+        $('[data-type=product_detail] a').on('click', function () {
+          that.showProductsDetail($(this).data('period'));
+        });
       }
 
       return this;
@@ -453,7 +541,9 @@
       stages: 'stages',
       pipeline: 'stages/{id}/deals',
       pipelines: 'pipelines',
-      timeline: 'deals/timeline'
+      timeline: 'deals/timeline',
+      products: 'products',
+      product_detail: 'deals/{id}/products'
     },
     views: [ 'pipeline', 'timeline' ],
     analyze: {
