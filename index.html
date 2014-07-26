@@ -38,6 +38,7 @@
 </div>
 
 <script src="./bower_components/jquery/dist/jquery.min.js"></script>
+<script src="./bower_components/basil.js/build/basil.min.js"></script>
 <script src="./bower_components/momentjs/min/moment.min.js"></script>
 <script src="pipewatch.js"></script>
 <script src="config.js"></script>
@@ -86,6 +87,7 @@
           <option value="<%= loggedInUser.id %>"><%= loggedInUser.email %></option>
       <% } %>
     </select>
+    <a href="#" id="logout">logout</a>
   </div>
 </script>
 

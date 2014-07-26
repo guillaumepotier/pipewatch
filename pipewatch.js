@@ -7,6 +7,14 @@
     this.store = {};
     this.view = this.options.default_view;
 
+    if (window.Basil) {
+      this.storage = new window.Basil();
+
+    // no api_token provided by config file and user stored api token here
+    if ((!this.options.api_token || null === this.options.api_token) && this.storage.get('api_token'))
+      this.options.api_token = this.storage.get('api_token');
+    }
+
     this.isAdmin = !this.options.jail_feature || ('undefined' !== typeof this.options.api_token && null !== this.options.api_token);
 
     this.loggedInUser = { id: -1, email: null };
@@ -66,6 +74,10 @@
               };
 
               this.options.api_token = response.data[0].api_token;
+
+              if (this.storage)
+                this.storage.set('api_token', this.options.api_token);
+
               this.init();
             }, this))
             .fail(function (xhr, status, response) {
@@ -459,9 +471,6 @@
             }
           }
 
-          console.log(store.periods[periodIndex].pipewatch);
-          console.log($.extend(true, {}, store.periods[periodIndex].pipewatch.products, { period: periodIndex }));
-
           this.$element.append(render('period_detail_tpl', $.extend(true, {}, store.periods[periodIndex].pipewatch.products, { periodIndex: periodIndex })));
           $('#period-' + periodIndex).modal({});
         }, this))
@@ -502,6 +511,14 @@
 
         $('[data-type=product_detail] a').on('click', function () {
           that.showProductsDetail($(this).data('period'));
+        });
+
+        $('#logout').on('click', function () {
+          if (!that.storage)
+            return console.warn('Cannot logout, storage not found');
+
+          that.storage.remove('api_token');
+          window.location.reload();
         });
       }
 
