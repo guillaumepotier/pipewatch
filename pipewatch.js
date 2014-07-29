@@ -1,26 +1,27 @@
 !(function($) {
 
   var PipeWatch = function (element, options) {
+    if (!window.Basil)
+      throw new Error('Basil must be loaded');
+
+    if (!moment)
+      throw new Error('Moment is required');
+
     this.$element = $(element);
     this.options = $.extend(true, {}, defaults, options);
     this.api = new API(this.options);
     this.store = {};
     this.view = this.options.default_view;
-
-    if (window.Basil) {
-      this.storage = new window.Basil();
+    this.loggedInUser = { id: -1, email: null };
+    this.isAdmin = !this.options.jail_feature || ('undefined' !== typeof this.options.api_token && null !== this.options.api_token);
+    this.storage = new window.Basil();
 
     // no api_token provided by config file and user stored api token here
     if ((!this.options.api_token || null === this.options.api_token) && this.storage.get('api_token'))
       this.options.api_token = this.storage.get('api_token');
-    }
 
-    this.isAdmin = !this.options.jail_feature || ('undefined' !== typeof this.options.api_token && null !== this.options.api_token);
-
-    this.loggedInUser = { id: -1, email: null };
-
-    if (!moment)
-      throw new Error('Moment is required');
+    if (this.storage.get('user'))
+      this.loggedInUser = this.storage.get('user');
 
     if (!window.PipeWatch)
       this.init();
@@ -30,7 +31,11 @@
     init: function () {
       if (!this.options.api_token || null === this.options.api_token)
         this.authenticate();
-      else
+      else {
+        // manage admin users
+        if (this.options.jail_feature && -1 !== this.options.admin_users.indexOf(this.loggedInUser.email))
+          this.isAdmin = true;
+
         this.fetchPipelines()
           .done($.proxy(function () {
             this.fetchProducts()
@@ -44,6 +49,7 @@
                   }, this));
                 }, this));
           }, this));
+        }
 
         if (!window.PipeWatch)
           window.PipeWatch = this;
@@ -58,16 +64,11 @@
         .on('submit', $.proxy(function (e) {
           e.preventDefault();
 
-          var form = {
+          this.api.post('authenticate', {
             email: $('#pipewatch_email').val().trim(),
             password: $('#pipewatch_password').val().trim()
-          };
-
-          this.api.post('authenticate', form)
+          })
             .done($.proxy(function (response) {
-              if (this.options.jail_feature && -1 !== this.options.admin_users.indexOf(response.additional_data.user.profile.email))
-                this.isAdmin = true;
-
               this.loggedInUser = {
                 id: response.additional_data.user.profile.id,
                 email: response.additional_data.user.profile.email
@@ -75,8 +76,8 @@
 
               this.options.api_token = response.data[0].api_token;
 
-              if (this.storage)
-                this.storage.set('api_token', this.options.api_token);
+              this.storage.set('api_token', this.options.api_token);
+              this.storage.set('user', this.loggedInUser);
 
               this.init();
             }, this))
