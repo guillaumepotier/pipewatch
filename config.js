@@ -6,7 +6,8 @@ window.PipeWatchConfig = {
   admin_users: [
     'andrei@wisembly.com',
     'romain@wisembly.com',
-    'guillaume@wisembly.com'
+    'guillaume@wisembly.com',
+    'arnaud@wisembly.com'
   ],
   unmonitored_users: [
     'charlotte@wisembly.com',
