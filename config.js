@@ -29,5 +29,6 @@ window.PipeWatchConfig = {
     amount: 6,
     start: 0,
     interval: 'month'
-  }
+  },
+  weighted_filter_percent: 40
 };
