@@ -261,6 +261,14 @@
         <% } %>
       </tr>
       <tr>
+        <td>Pipe filtered weighted value<sup></sup> (<%= window.PipeWatchConfig.weighted_filter_percent %>%)</td>
+        <% for (var i = 0; i < store.periods.length; i++) { %>
+            <td data-stage='<%= i %>' data-type="weighted_value">
+              <strong><%= Math.round(store.periods[i].pipewatch.sum.weighted_filtered_value / 1000, 1) %></strong>
+            </td>
+        <% } %>
+      </tr>
+      <tr>
         <td>MC <sup>**</sup> value (# deals)</td>
         <% for (var i = 0; i < store.periods.length; i++) { %>
             <td data-stage='<%= i %>' data-type="monthly_value">
