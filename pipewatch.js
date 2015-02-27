@@ -391,6 +391,7 @@
         };
         average = {
           weighted_value: 0,
+          weighted_filtered_value: 0,
           value: store.periods[i].totals_converted.value
         };
         products = { products: {}, deals: [] };
@@ -412,6 +413,9 @@
             }
           } else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
             average.weighted_value += store.periods[i].deals[j].value * percent_estimated / 100;
+
+            if (percent_estimated >= window.PipeWatchConfig.weighted_filter_percent)
+              average.weighted_filtered_value += store.periods[i].deals[j].value * percent_estimated / 100;
         }
 
         store.periods[i].pipewatch = { sum: $.extend(sum, average), products: products };

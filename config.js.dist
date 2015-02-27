@@ -1,10 +1,33 @@
 window.PipeWatchConfig = {
-  api_token: null, // if not provided, login box will be prompted
-  default_pipeline_id: 4, // pipe to be analyzed
-  default_view: 'pipeline', // pipeline | timeline
-  jail_feature: true, // if you want to use admin_users feature
-  admin_users: [ // users that could see global statistics and other users' statistics
-    'andrei@wisembly.com'
+  // api_token: 'token',
+  default_pipeline_id: 4,
+  default_view: 'timeline',
+  jail_feature: true,
+  admin_users: [
+    'andrei@wisembly.com',
+    'romain@wisembly.com',
+    'guillaume@wisembly.com'
   ],
-  unmonitored_users: [] // users email array to be excluded from PipeWatch
+  unmonitored_users: [
+    'charlotte@wisembly.com',
+    'charlotte@balloonup.com',
+    'christina@balloonup.com',
+    'cobalt2760@gmail.com',
+    'emmanuel@wisembly.com',
+    'romain@balloonup.com',
+    'selma@wisembly.com',
+    'selma@balloonup.com',
+    'sebastien@wisembly.com'
+  ],
+  timeline_options: {
+    amount: [1, 3, 6],    // interval numbers
+    start: [0, 1, 3, 6],  // now - amount * monts
+    interval: ['month', 'quarter']
+  },
+  timeline: {
+    amount: 6,
+    start: 0,
+    interval: 'month'
+  },
+  weighted_filter_percent: 40
 };
