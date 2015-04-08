@@ -398,7 +398,7 @@
 
         for (var j = 0; j < store.periods[i].deals.length; j++) {
           percent_estimated = store.periods[i].deals[j].db99cc66fe5fc443d34081f3d741496aa632e6e2;
-
+console.log(store.periods[i].deals[j].won_time)
           // store deal for product detail
           if (store.periods[i].deals[j].products_count >= 1)
             products.deals.push(store.periods[i].deals[j]);
@@ -414,7 +414,8 @@
           } else if (percent_estimated === parseInt(percent_estimated, 10) && percent_estimated >= 0 && percent_estimated <= 100)
             average.weighted_value += store.periods[i].deals[j].value * percent_estimated / 100;
 
-            if (percent_estimated >= window.PipeWatchConfig.weighted_filter_percent)
+            // count every already won deal + every deal that have a potential of closing > filter tresshold
+            if (percent_estimated >= window.PipeWatchConfig.weighted_filter_percent || null !== store.periods[i].deals[j].won_time)
               average.weighted_filtered_value += store.periods[i].deals[j].value * percent_estimated / 100;
         }
 
